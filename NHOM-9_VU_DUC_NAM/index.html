@@ -1,0 +1,904 @@
+<!DOCTYPE html>
+<html lang="vi">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Secure Voice Chat</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        :root {
+            --primary-color: #4a6bff;
+            --secondary-color: #6c757d;
+            --success-color: #28a745;
+            --danger-color: #dc3545;
+            --warning-color: #ffc107;
+            --info-color: #17a2b8;
+            --light-color: #f8f9fa;
+            --dark-color: #343a40;
+            --bg-gradient: linear-gradient(135deg, #f5f7fa 0%, #e4e8f0 100%);
+            --card-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+        }
+
+        body {
+            background: var(--bg-gradient);
+            min-height: 100vh;
+            font-family: 'Segoe UI', 'Roboto', 'Helvetica Neue', Arial, sans-serif;
+            color: #495057;
+            line-height: 1.6;
+        }
+
+        .chat-container {
+            background: white;
+            border-radius: 12px;
+            box-shadow: var(--card-shadow);
+            overflow: hidden;
+            border: none;
+        }
+
+        .header {
+            background: linear-gradient(135deg, var(--primary-color), #3a56e8);
+            color: white;
+            padding: 20px;
+        }
+
+        .connection-status {
+            display: inline-block;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            margin-right: 8px;
+        }
+
+        .status-connected {
+            background-color: var(--success-color);
+        }
+
+        .status-disconnected {
+            background-color: var(--danger-color);
+        }
+
+        .status-connecting {
+            background-color: var(--warning-color);
+        }
+
+        .card {
+            border: none;
+            border-radius: 10px;
+            box-shadow: var(--card-shadow);
+            margin-bottom: 20px;
+        }
+
+        .card-header {
+            border-radius: 10px 10px 0 0 !important;
+            font-weight: 600;
+            padding: 15px 20px;
+        }
+
+        .user-list {
+            max-height: 300px;
+            overflow-y: auto;
+            padding: 0;
+        }
+
+        .user-item {
+            padding: 12px 15px;
+            border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .user-item:hover {
+            background: rgba(74, 107, 255, 0.05);
+        }
+
+        .user-item.selected {
+            background: rgba(74, 107, 255, 0.1);
+            border-left: 3px solid var(--primary-color);
+        }
+
+        .voice-controls {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin: 20px 0;
+        }
+
+        .voice-btn {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            border: none;
+            color: white;
+            font-size: 20px;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        .voice-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
+        }
+
+        .voice-btn:active {
+            transform: translateY(0);
+        }
+
+        .record-btn {
+            background: var(--danger-color);
+        }
+
+        .record-btn.recording {
+            animation: pulse 1.5s infinite;
+        }
+
+        .play-btn {
+            background: var(--success-color);
+        }
+
+        .stop-btn {
+            background: var(--secondary-color);
+        }
+
+        @keyframes pulse {
+            0% {
+                transform: scale(1);
+                box-shadow: 0 0 0 0 rgba(220, 53, 69, 0.7);
+            }
+            70% {
+                transform: scale(1.05);
+                box-shadow: 0 0 0 10px rgba(220, 53, 69, 0);
+            }
+            100% {
+                transform: scale(1);
+                box-shadow: 0 0 0 0 rgba(220, 53, 69, 0);
+            }
+        }
+
+        .message-log {
+            height: 300px;
+            overflow-y: auto;
+            padding: 10px;
+            background: #f8f9fa;
+            border-radius: 8px;
+        }
+
+        .message-item {
+            padding: 8px 12px;
+            margin-bottom: 8px;
+            border-radius: 8px;
+            background: white;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+            font-size: 14px;
+            animation: slideIn 0.3s ease;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .msg-info {
+            border-left: 3px solid var(--info-color);
+        }
+
+        .msg-success {
+            border-left: 3px solid var(--success-color);
+        }
+
+        .msg-warning {
+            border-left: 3px solid var(--warning-color);
+        }
+
+        .msg-error {
+            border-left: 3px solid var(--danger-color);
+        }
+
+        .crypto-info {
+            background: white;
+            border-radius: 10px;
+            padding: 15px;
+            box-shadow: var(--card-shadow);
+        }
+
+        .security-step {
+            padding: 10px 15px;
+            margin-bottom: 8px;
+            border-radius: 8px;
+            background: white;
+            font-size: 14px;
+            transition: all 0.2s ease;
+            border-left: 3px solid var(--secondary-color);
+        }
+
+        .security-step.completed {
+            border-left-color: var(--success-color);
+            background: rgba(40, 167, 69, 0.05);
+        }
+
+        .security-step.active {
+            border-left-color: var(--primary-color);
+            background: rgba(74, 107, 255, 0.05);
+        }
+
+        .audio-visualizer {
+            height: 60px;
+            background: rgba(0, 0, 0, 0.03);
+            border-radius: 8px;
+            margin: 15px 0;
+            display: flex;
+            align-items: flex-end;
+            justify-content: center;
+            gap: 3px;
+            padding: 10px;
+        }
+
+        .visualizer-bar {
+            width: 4px;
+            background: linear-gradient(to top, var(--danger-color), var(--warning-color));
+            border-radius: 2px;
+            transition: height 0.1s ease;
+        }
+
+        .form-control {
+            border-radius: 8px;
+            padding: 10px 15px;
+            border: 1px solid #e1e5eb;
+        }
+
+        .btn {
+            border-radius: 8px;
+            padding: 10px 15px;
+            font-weight: 500;
+            transition: all 0.2s ease;
+        }
+
+        .btn-primary {
+            background-color: var(--primary-color);
+            border-color: var(--primary-color);
+        }
+
+        .btn-success {
+            background-color: var(--success-color);
+            border-color: var(--success-color);
+        }
+
+        .btn-danger {
+            background-color: var(--danger-color);
+            border-color: var(--danger-color);
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        .btn:active {
+            transform: translateY(0);
+        }
+
+        .text-muted {
+            color: #6c757d !important;
+        }
+
+        h2, h5, h6 {
+            font-weight: 600;
+        }
+
+        .no-users {
+            text-align: center;
+            padding: 20px;
+            color: #6c757d;
+        }
+
+        .no-users i {
+            font-size: 24px;
+            margin-bottom: 10px;
+        }
+
+        .no-activity {
+            text-align: center;
+            padding: 20px;
+            color: #6c757d;
+        }
+
+        .no-activity i {
+            font-size: 24px;
+            margin-bottom: 10px;
+        }
+
+        .row.p-4 {
+            display: flex;
+            flex-wrap: wrap;
+        }
+
+        /* Cột trái (Kết nối và người dùng) */
+        .col-md-4:first-child {
+            flex: 0 0 30%;
+            max-width: 30%;
+        }
+
+        /* Cột giữa (Điều khiển âm thanh và bảo mật) */
+        .col-md-4:nth-child(2) {
+            flex: 0 0 25%;
+            max-width: 25%;
+        }
+
+        /* Cột phải (Nhật ký hoạt động) */
+        .col-md-4:last-child {
+            flex: 0 0 45%;
+            max-width: 45%;
+        }
+
+        /* Thu nhỏ card điều khiển âm thanh */
+        .voice-controls-card {
+            min-height: auto;
+            padding: 15px;
+        }
+
+        /* Thu nhỏ nút điều khiển âm thanh */
+        .voice-btn {
+            width: 50px;
+            height: 50px;
+            font-size: 18px;
+        }
+
+        /* Thu nhỏ visualizer âm thanh */
+        .audio-visualizer {
+            height: 40px;
+            margin: 10px 0;
+        }
+
+        /* Thu nhỏ phần trạng thái bảo mật */
+        .crypto-info {
+            padding: 10px;
+        }
+
+        .security-step {
+            padding: 8px 10px;
+            font-size: 13px;
+        }
+
+        /* Mở rộng phần nhật ký hoạt động */
+        .message-log {
+            height: 400px; /* Tăng chiều cao */
+        }
+
+        /* Điều chỉnh kích thước chữ trong log */
+        .message-item {
+            font-size: 13px;
+            padding: 6px 10px;
+        }
+
+        /* Responsive cho mobile */
+        @media (max-width: 768px) {
+            .col-md-4:first-child,
+            .col-md-4:nth-child(2),
+            .col-md-4:last-child {
+                flex: 0 0 100%;
+                max-width: 100%;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container-fluid py-4">
+        <div class="row justify-content-center">
+            <div class="col-lg-10">
+                <div class="chat-container">
+                    <!-- Header -->
+                    <div class="header text-center">
+                        <h2><i class="fas fa-shield-alt me-2"></i>Secure Voice Chat</h2>
+                        <p class="mb-0">
+                            <span class="connection-status status-disconnected" id="statusIndicator"></span>
+                            <span id="connectionStatus">Chưa kết nối</span>
+                        </p>
+                    </div>
+
+                    <div class="row p-4">
+                        <!-- Cột trái: Kết nối và người dùng -->
+                        <div class="col-md-2">
+                            <div class="card mb-4">
+                                <div class="card-header bg-primary text-white">
+                                    <h5 class="mb-0"><i class="fas fa-user-circle me-2"></i>Thông tin kết nối</h5>
+                                </div>
+                                <div class="card-body">
+                                    <div class="mb-3">
+                                        <label class="form-label">Tên người dùng:</label>
+                                        <input type="text" class="form-control" id="usernameInput"
+                                            placeholder="Nhập tên của bạn">
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label">Phòng chat:</label>
+                                        <input type="text" class="form-control" id="roomInput" placeholder="room1"
+                                            value="room1">
+                                    </div>
+                                    <button class="btn btn-success w-100" id="connectBtn">
+                                        <i class="fas fa-plug me-2"></i>Kết nối
+                                    </button>
+                                    <button class="btn btn-outline-primary w-100 mt-2" id="generateKeysBtn" disabled>
+                                        <i class="fas fa-key me-2"></i>Tạo khóa RSA
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div class="card">
+                                <div class="card-header bg-primary text-white">
+                                    <h5 class="mb-0"><i class="fas fa-users me-2"></i>Người dùng online</h5>
+                                </div>
+                                <div class="card-body p-0">
+                                    <div class="user-list" id="userList">
+                                        <div class="no-users">
+                                            <i class="fas fa-user-slash"></i>
+                                            <p>Chưa có người dùng nào</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Cột giữa: Điều khiển âm thanh -->
+                        <div class="col-md-4">
+                            <div class="card mb-3">
+                                <div class="card-header bg-primary text-white">
+                                    <h5 class="mb-0"><i class="fas fa-microphone me-2"></i>Điều khiển âm thanh</h5>
+                                </div>
+                                <div class="card-body text-center">
+                                    <div class="audio-visualizer" id="audioVisualizer">
+                                        <!-- Thanh visualizer sẽ được tạo bằng JS -->
+                                    </div>
+
+                                    <div class="voice-controls">
+                                        <button class="voice-btn record-btn" id="recordBtn" disabled title="Ghi âm">
+                                            <i class="fas fa-microphone"></i>
+                                        </button>
+                                        <button class="voice-btn stop-btn" id="stopBtn" disabled title="Dừng">
+                                            <i class="fas fa-stop"></i>
+                                        </button>
+                                        <button class="voice-btn play-btn" id="playBtn" disabled title="Phát">
+                                            <i class="fas fa-play"></i>
+                                        </button>
+                                    </div>
+
+                                    <div class="mt-3">
+                                        <small class="text-muted">Chọn người nhận và nhấn ghi âm để bắt đầu</small>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Thông tin mã hóa -->
+                            <div class="crypto-info">
+                                <h6 class="text-primary"><i class="fas fa-lock me-2"></i>Trạng thái bảo mật</h6>
+                                <div class="security-step" id="step1">
+                                    <i class="fas fa-handshake me-2"></i>1. Handshake
+                                </div>
+                                <div class="security-step" id="step2">
+                                    <i class="fas fa-key me-2"></i>2. Trao đổi khóa
+                                </div>
+                                <div class="security-step" id="step3">
+                                    <i class="fas fa-shield-alt me-2"></i>3. Mã hóa DES
+                                </div>
+                                <div class="security-step" id="step4">
+                                    <i class="fas fa-check me-2"></i>4. Xác thực
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Cột phải: Log tin nhắn -->
+                        <div class="col-md-7">
+                            <div class="card h-100">
+                                <div class="card-header bg-primary text-white">
+                                    <h5 class="mb-0"><i class="fas fa-list-alt me-2"></i>CHAT</h5>
+                                </div>
+                                <div class="card-body p-0">
+                                    <div class="message-log" id="messageLog">
+                                        <div class="no-activity">
+                                            <i class="fas fa-comment-slash"></i>
+                                            <p>Chưa có hoạt động nào</p>
+                                        </div>
+                                    </div>
+                                    <div class="p-3">
+                                        <button class="btn btn-outline-secondary btn-sm w-100" onclick="clearLog()">
+                                            <i class="fas fa-trash me-2"></i>Xóa log
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Audio elements -->
+    <audio id="audioPlayer" controls style="display: none;"></audio>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
+    <script>
+        class SecureVoiceChat {
+            constructor() {
+                this.ws = null;
+                this.clientId = null;
+                this.selectedUserId = null;
+                this.mediaRecorder = null;
+                this.audioChunks = [];
+                this.isRecording = false;
+                this.publicKey = null;
+                this.privateKey = null;
+                this.sessionKeys = {};
+                this.users = {};
+                this.currentStep = 0;
+
+                
+                this.decryptedAudioBlobs = new Map(); // Lưu các blob đã giải mã thành công
+                this.pendingMessages = new Map();
+
+                this.initializeElements();
+                this.setupEventListeners();
+                this.createAudioVisualizer();
+            }
+
+            initializeElements() {
+                this.elements = {
+                    connectBtn: document.getElementById('connectBtn'),
+                    generateKeysBtn: document.getElementById('generateKeysBtn'),
+                    usernameInput: document.getElementById('usernameInput'),
+                    roomInput: document.getElementById('roomInput'),
+                    recordBtn: document.getElementById('recordBtn'),
+                    stopBtn: document.getElementById('stopBtn'),
+                    playBtn: document.getElementById('playBtn'),
+                    userList: document.getElementById('userList'),
+                    messageLog: document.getElementById('messageLog'),
+                    statusIndicator: document.getElementById('statusIndicator'),
+                    connectionStatus: document.getElementById('connectionStatus'),
+                    audioPlayer: document.getElementById('audioPlayer'),
+                    audioVisualizer: document.getElementById('audioVisualizer')
+                };
+            }
+
+            setupEventListeners() {
+                this.elements.connectBtn.addEventListener('click', () => this.connect());
+                this.elements.generateKeysBtn.addEventListener('click', () => this.generateKeys());
+                this.elements.recordBtn.addEventListener('click', () => this.startRecording());
+                this.elements.stopBtn.addEventListener('click', () => this.stopRecording());
+                this.elements.playBtn.addEventListener('click', () => this.playRecording());
+            }
+
+            // ... các hàm khác không thay đổi giữ nguyên ...
+            createAudioVisualizer() {
+                const visualizer = this.elements.audioVisualizer;
+                visualizer.innerHTML = '';
+                for (let i = 0; i < 32; i++) {
+                    const bar = document.createElement('div');
+                    bar.className = 'visualizer-bar';
+                    bar.style.height = '5px';
+                    visualizer.appendChild(bar);
+                }
+            }
+            animateVisualizer(isActive = false) {
+                const bars = this.elements.audioVisualizer.querySelectorAll('.visualizer-bar');
+                if (isActive) {
+                    bars.forEach((bar, index) => {
+                        setInterval(() => {
+                            const height = Math.random() * 40 + 5;
+                            bar.style.height = height + 'px';
+                        }, 100 + index * 10);
+                    });
+                } else {
+                    bars.forEach(bar => {
+                        bar.style.height = '5px';
+                    });
+                }
+            }
+            connect() {
+                const username = this.elements.usernameInput.value.trim();
+                const room = this.elements.roomInput.value.trim();
+                if (!username || !room) {
+                    this.addMessage('Vui lòng nhập tên người dùng và phòng chat', 'error');
+                    return;
+                }
+                this.updateConnectionStatus('connecting', 'Đang kết nối...');
+                try {
+                    this.ws = new WebSocket('ws://localhost:8765');
+                    this.ws.onopen = () => {
+                        this.updateConnectionStatus('connected', 'Đã kết nối');
+                        this.addMessage('Kết nối WebSocket thành công', 'success');
+                        this.elements.connectBtn.disabled = true;
+                        this.elements.generateKeysBtn.disabled = false;
+                    };
+                    this.ws.onmessage = (event) => {
+                        this.handleMessage(JSON.parse(event.data));
+                    };
+                    this.ws.onclose = () => {
+                        this.updateConnectionStatus('disconnected', 'Mất kết nối');
+                        this.addMessage('Mất kết nối WebSocket', 'error');
+                        this.elements.connectBtn.disabled = false;
+                        this.elements.generateKeysBtn.disabled = true;
+                    };
+                    this.ws.onerror = (error) => {
+                        this.addMessage('Lỗi kết nối: ' + error, 'error');
+                    };
+                } catch (error) {
+                    this.addMessage('Không thể kết nối đến server: ' + error, 'error');
+                    this.updateConnectionStatus('disconnected', 'Lỗi kết nối');
+                }
+            }
+            handleMessage(data) {
+                switch (data.type) {
+                    case 'connection_established': this.clientId = data.client_id; this.addMessage(`Client ID: ${this.clientId}`, 'info'); this.joinRoom(); break;
+                    case 'keys_generated': this.publicKey = data.public_key; this.privateKey = data.private_key; this.addMessage('Khóa RSA đã được tạo thành công', 'success'); this.updateSecurityStep(1, 'completed'); this.enableVoiceControls(); break;
+                    case 'room_joined': this.addMessage(`Đã tham gia phòng: ${data.room_id}`, 'success'); this.updateUserList(data.clients); break;
+                    case 'user_joined': this.addMessage(`${data.user.username} đã tham gia`, 'info'); this.users[data.user.id] = data.user; this.updateUserList(); break;
+                    case 'user_left': const leftUser = this.users[data.user_id]; if (leftUser) { this.addMessage(`${leftUser.username} đã rời đi`, 'info'); if (this.selectedUserId === data.user_id) { this.selectedUserId = null; this.addMessage('Người dùng bạn đang chọn đã rời đi.', 'warning'); this.elements.recordBtn.disabled = true; } delete this.users[data.user_id]; this.updateUserList(); } break;
+                    case 'handshake_request': this.handleHandshakeRequest(data); break;
+                    case 'handshake_response': this.handleHandshakeResponse(data); break;
+                    case 'key_exchange_sent': this.handleKeyExchangeSent(data); break;
+                    case 'key_exchange': this.handleKeyExchange(data); break;
+                    case 'voice_message': this.handleVoiceMessage(data); break; // Sẽ được cập nhật
+                    case 'ack_received': this.handleAckReceived(data); break;
+                    case 'error': this.addMessage('Lỗi: ' + data.message, 'error'); break;
+                }
+            }
+            generateKeys() { if (this.ws && this.ws.readyState === WebSocket.OPEN) { this.ws.send(JSON.stringify({ type: 'generate_keys' })); this.addMessage('Đang tạo cặp khóa RSA 2048-bit...', 'info'); } }
+            joinRoom() { const username = this.elements.usernameInput.value.trim(); const room = this.elements.roomInput.value.trim(); if (this.ws && this.ws.readyState === WebSocket.OPEN) { this.ws.send(JSON.stringify({ type: 'join_room', room_id: room, username: username })); } }
+            updateUserList(clients = null) { if (clients) { this.users = {}; clients.forEach(client => { this.users[client.id] = client; }); } const userList = this.elements.userList; const userCount = Object.keys(this.users).length; if (userCount === 0) { userList.innerHTML = `<div class="no-users"><i class="fas fa-user-slash"></i><p>Chưa có người dùng nào</p></div>`; return; } userList.innerHTML = ''; Object.values(this.users).forEach(user => { const userItem = document.createElement('div'); userItem.className = 'user-item'; userItem.innerHTML = `<div class="d-flex justify-content-between align-items-center"><div><strong>${user.username}</strong><small class="text-muted d-block">ID: ${user.id}</small></div><div><i class="fas fa-circle text-success" title="Online"></i>${user.public_key ? '<i class="fas fa-key text-primary ms-1" title="Có khóa RSA"></i>' : ''}</div></div>`; userItem.addEventListener('click', () => { this.selectUser(user.id, userItem); }); userList.appendChild(userItem); }); }
+            selectUser(userId, element) { document.querySelectorAll('.user-item').forEach(item => { item.classList.remove('selected'); }); element.classList.add('selected'); this.selectedUserId = userId; const selectedUser = this.users[userId]; this.addMessage(`Đã chọn: ${selectedUser.username}`, 'info'); if (!this.sessionKeys[userId]) { this.startHandshake(userId); } }
+            startHandshake(targetId) { if (!targetId) { this.addMessage('Lỗi: ID người nhận không hợp lệ.', 'error'); return; } if (!this.publicKey) { this.addMessage('Vui lòng tạo khóa RSA trước', 'warning'); return; } this.updateSecurityStep(1, 'active'); this.addMessage('Bắt đầu handshake...', 'info'); this.ws.send(JSON.stringify({ type: 'handshake_request', target_id: targetId })); }
+            handleHandshakeRequest(data) { this.addMessage(`Nhận handshake từ ${data.from_username}: ${data.message}`, 'info'); this.ws.send(JSON.stringify({ type: 'handshake_response', target_id: data.from_id })); this.updateSecurityStep(1, 'completed'); this.updateSecurityStep(2, 'active'); }
+            handleHandshakeResponse(data) { this.addMessage(`Phản hồi handshake từ ${data.from_username}: ${data.message}`, 'success'); this.users[data.from_id].public_key = data.public_key; this.updateSecurityStep(1, 'completed'); this.updateSecurityStep(2, 'active'); this.initiateKeyExchange(data.from_id); }
+            handleKeyExchangeSent(data) { if (data.session_key_established) { const targetId = data.target_id; this.sessionKeys[targetId] = 'simulated_des_key'; this.addMessage(`Đã gửi yêu cầu trao đổi khóa tới ${this.users[targetId].username}. Khóa đã được thiết lập.`, 'success'); this.updateSecurityStep(2, 'completed'); this.updateSecurityStep(3, 'completed'); this.updateSecurityStep(4, 'completed'); } else { this.addMessage('Gửi yêu cầu trao đổi khóa thất bại', 'error'); } }
+            initiateKeyExchange(targetId) { this.addMessage('Bắt đầu trao đổi khóa DES...', 'info'); this.ws.send(JSON.stringify({ type: 'key_exchange', target_id: targetId })); }
+            handleKeyExchange(data) { this.addMessage(`Nhận khóa từ ${data.from_id}`, 'info'); this.addMessage('Đang xác thực chữ ký RSA...', 'info'); setTimeout(() => { this.sessionKeys[data.from_id] = 'simulated_des_key'; this.addMessage('Trao đổi khóa thành công!', 'success'); this.updateSecurityStep(2, 'completed'); this.updateSecurityStep(3, 'completed'); this.updateSecurityStep(4, 'completed'); }, 1000); }
+            enableVoiceControls() { this.elements.recordBtn.disabled = false; this.addMessage('Điều khiển âm thanh đã sẵn sàng', 'success'); }
+            async startRecording() { if (!this.selectedUserId) { this.addMessage('Vui lòng chọn người nhận trước', 'warning'); return; } if (!this.sessionKeys[this.selectedUserId]) { this.addMessage('Chưa thiết lập khóa session với người dùng này', 'warning'); return; } try { const stream = await navigator.mediaDevices.getUserMedia({ audio: true }); this.mediaRecorder = new MediaRecorder(stream); this.audioChunks = []; this.mediaRecorder.ondataavailable = (event) => { this.audioChunks.push(event.data); }; this.mediaRecorder.onstop = () => { this.processRecording(); stream.getTracks().forEach(track => track.stop()); }; this.mediaRecorder.start(); this.isRecording = true; this.elements.recordBtn.disabled = true; this.elements.recordBtn.classList.add('recording'); this.elements.stopBtn.disabled = false; this.animateVisualizer(true); this.addMessage('Đang ghi âm...', 'info'); } catch (error) { this.addMessage('Không thể truy cập microphone: ' + error, 'error'); } }
+            stopRecording() { if (this.mediaRecorder && this.isRecording) { this.mediaRecorder.stop(); this.isRecording = false; this.elements.recordBtn.disabled = false; this.elements.recordBtn.classList.remove('recording'); this.elements.stopBtn.disabled = true; this.animateVisualizer(false); this.addMessage('Đã dừng ghi âm', 'info'); } }
+            processRecording() { const audioBlob = new Blob(this.audioChunks, { type: 'audio/wav' }); const reader = new FileReader(); reader.onload = () => { const audioData = reader.result; this.encryptAndSendAudio(audioData); }; reader.readAsArrayBuffer(audioBlob); this.elements.playBtn.disabled = false; }
+            encryptAndSendAudio(audioData) { if (!this.selectedUserId) { this.addMessage('Vui lòng chọn người nhận trước khi gửi.', 'warning'); return; } const audioBase64 = btoa(String.fromCharCode(...new Uint8Array(audioData))); const encryptedAudio = this.simulateDESEncryption(audioBase64); const audioHash = this.calculateSHA256(encryptedAudio); const signature = this.simulateRSASignature(audioHash); this.addMessage('Đang mã hóa âm thanh bằng DES...', 'info'); setTimeout(() => { this.ws.send(JSON.stringify({ type: 'voice_message', target_id: this.selectedUserId, cipher: encryptedAudio, hash: audioHash, sig: signature, timestamp: Date.now() })); this.addMessage('Đã gửi tin nhắn âm thanh đã mã hóa', 'success'); }, 500); }
+
+            /**
+             * [THAY ĐỔI]
+             * Xử lý khi nhận được tin nhắn thoại.
+             * Thay vì giải mã ngay, hàm này sẽ hiển thị bản mã và nút "Giải mã".
+             */
+            /**
+             * [THAY ĐỔI LỚN]
+             * Xử lý khi nhận tin nhắn, hiển thị bản mã và nút "Xác thực".
+             */
+             handleVoiceMessage(data) {
+                this.addMessage(`Nhận được gói tin âm thanh từ ${data.from_username}`, 'info');
+
+                const messageId = `msg-${Date.now()}`;
+                this.pendingMessages.set(messageId, data);
+
+                const truncatedCipher = data.cipher.substring(0, 40) + '...';
+                const logHtml = `
+                    <div>
+                        <p class="mb-1">
+                            <i class="fas fa-envelope text-info me-2"></i><strong>Gói tin từ ${data.from_username}:</strong>
+                        </p>
+                        <div style="font-family: monospace; font-size: 12px; background-color: #f1f1f1; padding: 8px; border-radius: 4px;">
+                            <p class="mb-1" style="word-break: break-all;"><strong>Cipher:</strong> ${truncatedCipher}</p>
+                            <p class="mb-0" style="word-break: break-all;"><strong>Hash:</strong> ${data.hash.substring(0, 40)}...</p>
+                        </div>
+                        <button class="btn btn-sm btn-warning mt-2" onclick="voiceChat.verifySignature('${messageId}')">
+                            <i class="fas fa-user-shield me-1"></i> Xác thực chữ ký
+                        </button>
+                    </div>
+                `;
+                this.addMessage(logHtml, 'info', messageId);
+            }
+            
+            /**
+             * [THÊM MỚI]
+             * Bước 1: Xác thực chữ ký và tính toàn vẹn của gói tin.
+             */
+             verifySignature(messageId) {
+                const messageContainer = document.getElementById(messageId);
+                const data = this.pendingMessages.get(messageId);
+                if (!data || !messageContainer) return;
+
+                // Cập nhật giao diện
+                messageContainer.querySelector('button').innerHTML = `<i class="fas fa-spinner fa-spin me-2"></i>Đang xác thực...`;
+                messageContainer.querySelector('button').disabled = true;
+
+                setTimeout(() => { // Giả lập độ trễ
+                    const isValid = this.verifyMessage(data.cipher, data.hash, data.sig);
+
+                    if (isValid) {
+                        // Xác thực thành công -> Cập nhật giao diện và hiển thị nút "Giải mã"
+                        const successHtml = `
+                             <div>
+                                <p class="mb-1 text-success">
+                                    <i class="fas fa-check-circle me-2"></i><strong>Chữ ký hợp lệ!</strong>
+                                </p>
+                                <div style="font-family: monospace; font-size: 12px; background-color: #e8f5e9; padding: 8px; border-radius: 4px;">
+                                     <p class="mb-1" style="word-break: break-all;"><strong>Cipher:</strong> ${data.cipher.substring(0, 40)}...</p>
+                                     <p class="mb-0" style="word-break: break-all;"><strong>Hash:</strong> ${data.hash.substring(0, 40)}...</p>
+                                </div>
+                                <button class="btn btn-sm btn-primary mt-2" onclick="voiceChat.decryptMessage('${messageId}')">
+                                    <i class="fas fa-key me-1"></i> Giải mã
+                                </button>
+                            </div>
+                        `;
+                        messageContainer.querySelector('.d-flex > div').innerHTML = successHtml;
+                        messageContainer.className = 'message-item msg-success';
+                    } else {
+                        // Xác thực thất bại -> Báo lỗi HASH
+                        const errorHtml = `
+                            <div>
+                                <p class="mb-1 text-danger">
+                                    <i class="fas fa-times-circle me-2"></i><strong>Lỗi HASH! Chữ ký không hợp lệ.</strong>
+                                </p>
+                                <p class="small">Gói tin có thể đã bị thay đổi hoặc không đáng tin cậy.</p>
+                            </div>
+                        `;
+                        messageContainer.querySelector('.d-flex > div').innerHTML = errorHtml;
+                        messageContainer.className = 'message-item msg-error';
+                        this.sendAck(data.from_id, 'NACK', 'Hash verification failed!');
+                        this.pendingMessages.delete(messageId); // Xóa tin nhắn lỗi
+                    }
+                }, 1000);
+            }
+            
+            decryptMessage(messageId) {
+                const messageContainer = document.getElementById(messageId);
+                const data = this.pendingMessages.get(messageId);
+                if (!data || !messageContainer) return;
+
+                // Cập nhật giao diện
+                messageContainer.querySelector('button').innerHTML = `<i class="fas fa-spinner fa-spin me-2"></i>Đang giải mã...`;
+                messageContainer.querySelector('button').disabled = true;
+
+                setTimeout(() => { // Giả lập độ trễ
+                    try {
+                        const decodedOuterLayer = atob(data.cipher);
+                        const originalAudioBase64 = decodedOuterLayer.replace('_encrypted_with_des', '');
+                        const rawBinaryString = atob(originalAudioBase64);
+                        const byteNumbers = new Array(rawBinaryString.length);
+                        for (let i = 0; i < rawBinaryString.length; i++) { byteNumbers[i] = rawBinaryString.charCodeAt(i); }
+                        const byteArray = new Uint8Array(byteNumbers);
+                        const audioBlob = new Blob([byteArray], { type: 'audio/wav' });
+
+                        if (audioBlob.size > 0) {
+                            this.decryptedAudioBlobs.set(messageId, audioBlob);
+                            const successHtml = `
+                                <div>
+                                    <p class="mb-1 text-success">
+                                        <i class="fas fa-microphone-alt me-2"></i><strong>Giải mã thành công!</strong>
+                                    </p>
+                                    <button class="btn btn-sm btn-success mt-2" onclick="voiceChat.playDecryptedAudio('${messageId}')">
+                                        <i class="fas fa-play me-1"></i> Nghe âm thanh
+                                    </button>
+                                </div>
+                            `;
+                            messageContainer.querySelector('.d-flex > div').innerHTML = successHtml;
+                            this.sendAck(data.from_id, 'ACK', 'Message successfully decrypted.');
+                        } else {
+                            throw new Error("Tạo audio blob thất bại, kích thước là 0.");
+                        }
+                    } catch (e) {
+                        const errorHtml = `
+                            <div>
+                                <p class="mb-1 text-danger">
+                                    <i class="fas fa-bomb me-2"></i><strong>Lỗi giải mã!</strong>
+                                </p>
+                                <p class="small">${e.message}</p>
+                            </div>
+                        `;
+                        messageContainer.querySelector('.d-flex > div').innerHTML = errorHtml;
+                        this.sendAck(data.from_id, 'NACK', `Client-side decryption error: ${e.message}`);
+                    } finally {
+                        this.pendingMessages.delete(messageId);
+                    }
+                }, 1000);
+            }
+
+            /**
+             * Hàm này chỉ kiểm tra hash, trong thực tế sẽ kiểm tra cả chữ ký RSA.
+             */
+             verifyMessage(cipher, hash, signature) {
+                const calculatedHash = this.calculateSHA256(cipher);
+                return calculatedHash === hash;
+            }
+
+            sendAck(targetId, status, message) {
+                this.ws.send(JSON.stringify({
+                    type: 'ack',
+                    target_id: targetId,
+                    status: status,
+                    message: message
+                }));
+            }
+
+            handleAckReceived(data) {
+                if (data.status === 'ACK') {
+                    this.addMessage(`Nhận ACK từ ${data.from_id}: Tin nhắn đã được xác thực`, 'success');
+                } else {
+                    this.addMessage(`Nhận NACK từ ${data.from_id}: ${data.message}`, 'error');
+                }
+            }
+            
+            playRecording() {
+                if (this.audioChunks.length > 0) {
+                    const audioBlob = new Blob(this.audioChunks, { type: 'audio/wav' });
+                    const audioUrl = URL.createObjectURL(audioBlob);
+                    this.elements.audioPlayer.src = audioUrl;
+                    this.elements.audioPlayer.play();
+                    this.addMessage('Đang phát lại bản ghi âm', 'info');
+                }
+            }
+
+            /**
+             * [THÊM MỚI]
+             * Hàm phát lại âm thanh đã được giải mã từ blob đã lưu.
+             */
+            playDecryptedAudio(messageId) {
+                const audioBlob = this.decryptedAudioBlobs.get(messageId);
+                if (audioBlob) {
+                    const audioUrl = URL.createObjectURL(audioBlob);
+                    this.elements.audioPlayer.src = audioUrl;
+                    this.elements.audioPlayer.play();
+                    this.addMessage(`Đang phát lại tin nhắn (ID: ${messageId.substring(4)})`, 'info');
+                } else {
+                    this.addMessage(`Lỗi: Không tìm thấy dữ liệu âm thanh cho tin nhắn này.`, 'error');
+                }
+            }
+
+            // Utility functions
+            simulateDESEncryption(data) { return btoa(data + '_encrypted_with_des'); }
+            calculateSHA256(data) { return CryptoJS.SHA256(data).toString(); }
+            simulateRSASignature(data) { return btoa('rsa_signature_of_' + data); }
+            updateConnectionStatus(status, message) { this.elements.statusIndicator.className = `connection-status status-${status}`; this.elements.connectionStatus.textContent = message; }
+            updateSecurityStep(step, status) { const stepElement = document.getElementById(`step${step}`); if (stepElement) { stepElement.className = `security-step ${status}`; } }
+
+            // [THAY ĐỔI] Cho phép gán ID cho message item để có thể cập nhật
+            addMessage(message, type = 'info', messageId = null) {
+                const messageLog = this.elements.messageLog;
+                const messageItem = document.createElement('div');
+                messageItem.className = `message-item msg-${type}`;
+
+                if (messageId) {
+                    messageItem.id = messageId;
+                }
+
+                const timestamp = new Date().toLocaleTimeString();
+                messageItem.innerHTML = `
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>${message}</div> 
+                        <small class="text-muted">${timestamp}</small>
+                    </div>
+                `;
+
+                const noActivity = messageLog.querySelector('.no-activity');
+                if (noActivity) noActivity.remove();
+
+                messageLog.appendChild(messageItem);
+                messageLog.scrollTop = messageLog.scrollHeight;
+                if (messageLog.children.length > 50) {
+                    messageLog.removeChild(messageLog.firstChild);
+                }
+            }
+        }
+
+        const voiceChat = new SecureVoiceChat();
+
+        function clearLog() {
+            document.getElementById('messageLog').innerHTML = `<div class="no-activity"><i class="fas fa-comment-slash"></i><p>Chưa có hoạt động nào</p></div>`;
+        }
+    </script>
+</body>
+
+</html>
