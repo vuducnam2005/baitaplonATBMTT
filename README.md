@@ -226,11 +226,6 @@ Hoan nghênh mọi đóng góp! Vui lòng:
 
 Dự án này được phát hành dưới MIT License.
 
-## 👥 Tác giả
-
-- **Tên tác giả**: [Nhập tên của bạn]
-- **Email**: [Nhập email của bạn]
-- **GitHub**: [Nhập GitHub của bạn]
 
 ## 📝 Changelog
 
